@@ -1,0 +1,105 @@
+package <%= BASE_PACKAGE %>.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import java.util.*;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+<% 
+const inheritanceParent = relationships.some(rel => rel.type === 'inheritance' && rel.targetId === umlClass.id);
+if (inheritanceParent) { %>
+@Inheritance(strategy = InheritanceType.JOINED)
+<% } %>
+public class <%= umlClass.name %> 
+<% 
+const inheritanceChild = relationships.find(rel => rel.type === 'inheritance' && rel.sourceId === umlClass.id);
+if (inheritanceChild) {
+   const parent = classes.find(c => c.id === inheritanceChild.targetId);
+%> extends <%= parent.name %> <% } %> {
+
+<% umlClass.attributes.forEach(attr => { %>
+    <% if(attr.name.toLowerCase() === 'id') { %>
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private <%= attr.type %> <%= attr.name %>;
+    <% } else { %>
+    private <%= attr.type %> <%= attr.name %>;
+    <% } %>
+<% }) %>
+
+<% relationships.forEach(rel => { 
+     const source = classes.find(c => c.id === rel.sourceId);
+     const target = classes.find(c => c.id === rel.targetId);
+     const sourceLower = source.name.charAt(0).toLowerCase() + source.name.slice(1);
+     const targetLower = target.name.charAt(0).toLowerCase() + target.name.slice(1);
+%>
+
+    <% if (rel.type === 'one_to_one') { %>
+        <% if (umlClass.id === source.id) { %>
+    @OneToOne
+    @JoinColumn(name = "<%= targetLower %>_id")
+    private <%= target.name %> <%= targetLower %>;
+        <% } else if (umlClass.id === target.id) { %>
+    @OneToOne(mappedBy = "<%= sourceLower %>")
+    private <%= source.name %> <%= sourceLower %>;
+        <% } %>
+
+    <% } else if (rel.type === 'many_to_one') { %>
+        <% if (umlClass.id === source.id) { %>
+    @ManyToOne
+    @JoinColumn(name = "<%= targetLower %>_id")
+    private <%= target.name %> <%= targetLower %>;
+        <% } else if (umlClass.id === target.id) { %>
+    @OneToMany(mappedBy = "<%= targetLower %>")
+    private List<<%= source.name %>> <%= sourceLower %>s = new ArrayList<>();
+        <% } %>
+
+    <% } else if (rel.type === 'one_to_many') { %>
+        <% if (umlClass.id === source.id) { %>
+    @OneToMany(mappedBy = "<%= sourceLower %>")
+    private List<<%= target.name %>> <%= targetLower %>s = new ArrayList<>();
+        <% } else if (umlClass.id === target.id) { %>
+    @ManyToOne
+    @JoinColumn(name = "<%= sourceLower %>_id")
+    private <%= source.name %> <%= sourceLower %>;
+        <% } %>
+
+    <% } else if (rel.type === 'many_to_many') { %>
+        <% if (umlClass.id === source.id) { %>
+    @ManyToMany
+    @JoinTable(
+        name = "<%= source.name.toLowerCase() %>_<%= target.name.toLowerCase() %>",
+        joinColumns = @JoinColumn(name = "<%= source.name.toLowerCase() %>_id"),
+        inverseJoinColumns = @JoinColumn(name = "<%= target.name.toLowerCase() %>_id")
+    )
+    private Set<<%= target.name %>> <%= targetLower %>s = new HashSet<>();
+        <% } else if (umlClass.id === target.id) { %>
+    @ManyToMany(mappedBy = "<%= sourceLower %>s")
+    private Set<<%= source.name %>> <%= sourceLower %>s = new HashSet<>();
+        <% } %>
+
+    <% } else if (rel.type === 'aggregation') { %>
+        <% if (umlClass.id === source.id) { %>
+    @ManyToOne
+    @JoinColumn(name = "<%= targetLower %>_id")
+    private <%= target.name %> <%= targetLower %>;
+        <% } else if (umlClass.id === target.id) { %>
+    @OneToMany(mappedBy = "<%= targetLower %>")
+    private List<<%= source.name %>> <%= sourceLower %>s = new ArrayList<>();
+        <% } %>
+
+    <% } else if (rel.type === 'composition') { %>
+        <% if (umlClass.id === source.id) { %>
+    @ManyToOne
+    @JoinColumn(name = "<%= targetLower %>_id")
+    private <%= target.name %> <%= targetLower %>;
+        <% } else if (umlClass.id === target.id) { %>
+    @OneToMany(mappedBy = "<%= targetLower %>", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<<%= source.name %>> <%= sourceLower %>s = new ArrayList<>();
+        <% } %>
+    <% } %>
+<% }) %>
+}

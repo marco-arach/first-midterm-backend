@@ -1,0 +1,64 @@
+package <%= BASE_PACKAGE %>.dto;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import java.util.*;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+<% 
+
+const inheritanceChild = relationships.find(rel => rel.type === 'inheritance' && rel.sourceId === umlClass.id);
+if (inheritanceChild) {
+   const parent = classes.find(c => c.id === inheritanceChild.targetId);
+%>
+public class <%= umlClass.name %>Dto extends <%= parent.name %>Dto {
+<% } else { %>
+public class <%= umlClass.name %>Dto {
+<% } %>
+
+<% umlClass.attributes.forEach(attr => { 
+   const attrName = attr.name.charAt(0).toLowerCase() + attr.name.slice(1); 
+%>
+    private <%= attr.type %> <%= attrName %>;
+<% }) %>
+
+<% relationships.forEach(rel => {
+    const source = classes.find(c => c.id === rel.sourceId);
+    const target = classes.find(c => c.id === rel.targetId);
+    const sourceLower = source.name.charAt(0).toLowerCase() + source.name.slice(1);
+    const targetLower = target.name.charAt(0).toLowerCase() + target.name.slice(1);
+
+    if (rel.type === 'one_to_many' && umlClass.id === source.id) { %>
+    private List<<%= target.name %>Dto> <%= targetLower %>s = new ArrayList<>();
+<% } 
+    else if (rel.type === 'one_to_many' && umlClass.id === target.id) { %>
+    private Long <%= sourceLower %>Id;
+<% } 
+    else if (rel.type === 'many_to_one' && umlClass.id === source.id) { %>
+    private Long <%= targetLower %>Id;
+<% } 
+    else if (rel.type === 'one_to_one' && umlClass.id === source.id) { %>
+    private Long <%= targetLower %>Id;
+<% } 
+    else if (rel.type === 'many_to_many' && umlClass.id === source.id) { %>
+    private Set<<%= target.name %>Dto> <%= targetLower %>s = new HashSet<>();
+<% }
+    else if (rel.type === 'aggregation') {
+        if (umlClass.id === source.id) { %>
+    private Long <%= targetLower %>Id;
+<%      } else if (umlClass.id === target.id) { %>
+    private List<<%= source.name %>Dto> <%= sourceLower %>s = new ArrayList<>();
+<%      }
+    }
+    else if (rel.type === 'composition') {
+        if (umlClass.id === source.id) { %>
+    private Long <%= targetLower %>Id;
+<%      } else if (umlClass.id === target.id) { %>
+    private List<<%= source.name %>Dto> <%= sourceLower %>s = new ArrayList<>();
+<%      }
+    }
+}) %>
+}

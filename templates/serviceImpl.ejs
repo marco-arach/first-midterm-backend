@@ -1,0 +1,159 @@
+package <%= BASE_PACKAGE %>.service.impl;
+
+import <%= BASE_PACKAGE %>.dto.<%= umlClass.name %>Dto;
+import <%= BASE_PACKAGE %>.entity.<%= umlClass.name %>;
+import <%= BASE_PACKAGE %>.repository.<%= umlClass.name %>Repository;
+<% 
+let importedRepos = new Set();
+relationships.forEach(rel => {
+    const source = classes.find(c => c.id === rel.sourceId);
+    const target = classes.find(c => c.id === rel.targetId);
+
+    let relatedClass = null;
+    if ((umlClass.id === target.id && rel.type === 'one_to_many') ||
+        (umlClass.id === source.id && (rel.type === 'many_to_one' || rel.type === 'one_to_one'))) {
+        relatedClass = source.id === umlClass.id ? target : source;
+    }
+
+    if (relatedClass && !importedRepos.has(relatedClass.name)) {
+        importedRepos.add(relatedClass.name); %>
+import <%= BASE_PACKAGE %>.entity.<%= relatedClass.name %>;
+import <%= BASE_PACKAGE %>.repository.<%= relatedClass.name %>Repository;
+<%  }
+});
+%>
+import <%= BASE_PACKAGE %>.service.<%= umlClass.name %>Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class <%= umlClass.name %>ServiceImpl implements <%= umlClass.name %>Service {
+
+    private final <%= umlClass.name %>Repository <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Repository;
+<% 
+importedRepos.forEach(repo => { 
+    const lower = repo.charAt(0).toLowerCase() + repo.slice(1); 
+%>
+    private final <%= repo %>Repository <%= lower %>Repository;
+<% }); %>
+
+    @Override
+    public <%= umlClass.name %>Dto create<%= umlClass.name %>(<%= umlClass.name %>Dto dto) {
+        <%= umlClass.name %> entity = new <%= umlClass.name %>();
+
+<% 
+relationships.forEach(rel => {
+    const source = classes.find(c => c.id === rel.sourceId);
+    const target = classes.find(c => c.id === rel.targetId);
+
+    let relatedClass = null;
+    if ((umlClass.id === target.id && rel.type === 'one_to_many') ||
+        (umlClass.id === source.id && (rel.type === 'many_to_one' || rel.type === 'one_to_one'))) {
+        relatedClass = source.id === umlClass.id ? target : source;
+        const dtoGetter = "get" + relatedClass.name.charAt(0).toUpperCase() + relatedClass.name.slice(1) + "Id";
+        const varName = relatedClass.name.charAt(0).toLowerCase() + relatedClass.name.slice(1);
+%>
+        if (dto.<%= dtoGetter %>() == null) {
+            throw new RuntimeException("<%= relatedClass.name %> ID is required");
+        }
+        <%= relatedClass.name %> <%= varName %> =
+            <%= varName %>Repository.findById(dto.<%= dtoGetter %>())
+                .orElseThrow(() -> new RuntimeException("<%= relatedClass.name %> not found"));
+        entity.set<%= relatedClass.name.charAt(0).toUpperCase() + relatedClass.name.slice(1) %>(<%= varName %>);
+<%  }
+}); %>
+
+<%
+    let excludedProps = [];
+    relationships.forEach(rel => {
+        const source = classes.find(c => c.id === rel.sourceId);
+        const target = classes.find(c => c.id === rel.targetId);
+        if ((umlClass.id === target.id && rel.type === 'one_to_many') ||
+            (umlClass.id === source.id && (rel.type === 'many_to_one' || rel.type === 'one_to_one'))) {
+            const otherName = source.id === umlClass.id ? target.name : source.name;
+            excludedProps.push(otherName.charAt(0).toLowerCase() + otherName.slice(1));
+        }
+    });
+%>
+<% if (excludedProps.length > 0) { %>
+        BeanUtils.copyProperties(dto, entity, <%- excludedProps.map(p => `"${p}"`).join(", ") %>);
+<% } else { %>
+        BeanUtils.copyProperties(dto, entity);
+<% } %>
+
+        entity = <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Repository.save(entity);
+        <%= umlClass.name %>Dto response = new <%= umlClass.name %>Dto();
+        BeanUtils.copyProperties(entity, response);
+        return response;
+    }
+
+    @Override
+    public <%= umlClass.name %>Dto update<%= umlClass.name %>(Long id, <%= umlClass.name %>Dto dto) {
+        <%= umlClass.name %> entity = <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("<%= umlClass.name %> not found"));
+
+<% 
+relationships.forEach(rel => {
+    const source = classes.find(c => c.id === rel.sourceId);
+    const target = classes.find(c => c.id === rel.targetId);
+
+    let relatedClass = null;
+    if ((umlClass.id === target.id && rel.type === 'one_to_many') ||
+        (umlClass.id === source.id && (rel.type === 'many_to_one' || rel.type === 'one_to_one'))) {
+        relatedClass = source.id === umlClass.id ? target : source;
+        const dtoGetter = "get" + relatedClass.name.charAt(0).toUpperCase() + relatedClass.name.slice(1) + "Id";
+        const varName = relatedClass.name.charAt(0).toLowerCase() + relatedClass.name.slice(1);
+%>
+        if (dto.<%= dtoGetter %>() != null) {
+            <%= relatedClass.name %> <%= varName %> =
+                <%= varName %>Repository.findById(dto.<%= dtoGetter %>())
+                    .orElseThrow(() -> new RuntimeException("<%= relatedClass.name %> not found"));
+            entity.set<%= relatedClass.name.charAt(0).toUpperCase() + relatedClass.name.slice(1) %>(<%= varName %>);
+        }
+<%  }
+}); %>
+
+<% if (excludedProps.length > 0) { %>
+        BeanUtils.copyProperties(dto, entity, <%- excludedProps.map(p => `"${p}"`).join(", ") %>);
+<% } else { %>
+        BeanUtils.copyProperties(dto, entity);
+<% } %>
+
+        entity = <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Repository.save(entity);
+        <%= umlClass.name %>Dto response = new <%= umlClass.name %>Dto();
+        BeanUtils.copyProperties(entity, response);
+        return response;
+    }
+
+    @Override
+    public <%= umlClass.name %>Dto get<%= umlClass.name %>ById(Long id) {
+        <%= umlClass.name %> entity = <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("<%= umlClass.name %> not found"));
+        <%= umlClass.name %>Dto response = new <%= umlClass.name %>Dto();
+        BeanUtils.copyProperties(entity, response);
+        return response;
+    }
+
+    @Override
+    public List<<%= umlClass.name %>Dto> getAll<%= umlClass.name %>s() {
+        return <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Repository.findAll().stream()
+                .map(entity -> {
+                    <%= umlClass.name %>Dto response = new <%= umlClass.name %>Dto();
+                    BeanUtils.copyProperties(entity, response);
+                    return response;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void delete<%= umlClass.name %>(Long id) {
+        if (!<%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Repository.existsById(id))
+            throw new RuntimeException("<%= umlClass.name %> not found");
+        <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Repository.deleteById(id);
+    }
+}

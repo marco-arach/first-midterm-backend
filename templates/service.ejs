@@ -1,0 +1,17 @@
+package <%= BASE_PACKAGE %>.service;
+
+import java.util.List;
+import <%= BASE_PACKAGE %>.dto.<%= umlClass.name %>Dto;
+
+public interface <%= umlClass.name %>Service {
+
+    <%= umlClass.name %>Dto create<%= umlClass.name %>(<%= umlClass.name %>Dto <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Dto);
+
+    <%= umlClass.name %>Dto get<%= umlClass.name %>ById(Long id);
+
+    List<<%= umlClass.name %>Dto> getAll<%= umlClass.name %>s();
+
+    <%= umlClass.name %>Dto update<%= umlClass.name %>(Long id, <%= umlClass.name %>Dto <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Dto);
+
+    void delete<%= umlClass.name %>(Long id);
+}
