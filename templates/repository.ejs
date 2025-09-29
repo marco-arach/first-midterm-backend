@@ -1,0 +1,10 @@
+package <%= BASE_PACKAGE %>.repository;
+
+import <%= BASE_PACKAGE %>.entity.<%= umlClass.name %>;
+import java.lang.Long;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface <%= umlClass.name %>Repository extends JpaRepository<<%= umlClass.name %>, Long> {
+}

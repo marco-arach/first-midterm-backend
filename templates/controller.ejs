@@ -1,0 +1,51 @@
+package <%= BASE_PACKAGE %>.controller;
+
+import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import lombok.RequiredArgsConstructor;
+import java.util.List;
+import <%= BASE_PACKAGE %>.dto.<%= umlClass.name %>Dto;
+import <%= BASE_PACKAGE %>.service.<%= umlClass.name %>Service;
+
+@RestController
+@RequestMapping("/api/<%= umlClass.name.toLowerCase() %>s")
+@RequiredArgsConstructor
+public class <%= umlClass.name %>Controller {
+
+    private final <%= umlClass.name %>Service <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Service;
+
+    @PostMapping
+    public ResponseEntity<<%= umlClass.name %>Dto> create<%= umlClass.name %>(
+            @RequestBody <%= umlClass.name %>Dto <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Dto) {
+        return ResponseEntity.ok(
+            <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Service.create<%= umlClass.name %>(
+                <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Dto));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<<%= umlClass.name %>Dto> get<%= umlClass.name %>ById(@PathVariable Long id) {
+        return ResponseEntity.ok(
+            <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Service.get<%= umlClass.name %>ById(id));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<<%= umlClass.name %>Dto>> getAll<%= umlClass.name %>s() {
+        return ResponseEntity.ok(
+            <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Service.getAll<%= umlClass.name %>s());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<<%= umlClass.name %>Dto> update<%= umlClass.name %>(
+            @PathVariable Long id,
+            @RequestBody <%= umlClass.name %>Dto <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Dto) {
+        return ResponseEntity.ok(
+            <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Service.update<%= umlClass.name %>(
+                id, <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Dto));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete<%= umlClass.name %>(@PathVariable Long id) {
+        <%= umlClass.name.charAt(0).toLowerCase() + umlClass.name.slice(1) %>Service.delete<%= umlClass.name %>(id);
+        return ResponseEntity.noContent().build();
+    }
+}

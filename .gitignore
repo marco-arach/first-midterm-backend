@@ -4,3 +4,4 @@ node_modules/
 *.log
 /generated/prisma
 .env
+generated-project/
